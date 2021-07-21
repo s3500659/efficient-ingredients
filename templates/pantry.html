@@ -1,0 +1,32 @@
+{% extends 'base.html'%}
+
+{% block head %}
+<title>My Pantry</title>
+{% endblock %}
+
+{% block body %}
+<div>
+    <h2>Add ingredients to pantry</h2>
+    <form name="add_ingredient" action="add_ingredient" method="POST">
+        <input type="text" name="ingredient" placeholder="add an ingredient..." required>
+        <button type="submit">Add</button>
+    </form>
+
+    {% if ingredients %}
+    <h2>Your Ingredients</h2>
+    <table>
+        <tr>
+            <th>Ingredient</th>
+            <th>Remove</th>
+        </tr>
+        {% for item in ingredients %}
+        <tr>
+            <td>{{ item['ingredient'] }}</td>
+            <td><a href="{{ url_for('remove_ingredient', ingredient=item['ingredient']) }}">Remove</a></td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% endif %}
+</div>
+
+{% endblock %}
