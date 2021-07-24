@@ -5,28 +5,55 @@
 {% endblock %}
 
 {% block body %}
-<div>
-    <h2>Add ingredients to pantry</h2>
-    <form name="add_ingredient" action="add_ingredient" method="POST">
-        <input type="text" name="ingredient" placeholder="add an ingredient..." required>
-        <button type="submit">Add</button>
-    </form>
-
-    {% if ingredients %}
-    <h2>Your Ingredients</h2>
-    <table>
-        <tr>
-            <th>Ingredient</th>
-            <th>Remove</th>
-        </tr>
-        {% for item in ingredients %}
-        <tr>
-            <td>{{ item['ingredient'] }}</td>
-            <td><a href="{{ url_for('remove_ingredient', ingredient=item['ingredient']) }}">Remove</a></td>
-        </tr>
-        {% endfor %}
-    </table>
-    {% endif %}
-</div>
+<div class="container">
+    <!-- Find recipe section -->
+    <section>
+        <h2>Search for a recipe</h2>
+        <form name="search_for_recipe" action="search_by_recipe_name" method="POST">
+            <div class="form-group">
+                <input class="form-control" type="text" name="recipe_name" placeholder="enter a recipe name...">
+            </div>
+            <button type="submit" class="btn btn-primary">Search</button>
+        </form>
+    </section>
+    <!-- Add ingredients section -->
+    <section>
+        <h2>Add ingredients to pantry</h2>
+        <form name="add_ingredient" action="add_ingredient" method="POST">
+            <div class="form-group">
+                <label for="ingredient">Ingredient:</label>
+                <input class="form-control" type="text" id="ingredient" name="ingredient"
+                    placeholder="add an ingredient..." required>
+                <label for="expiry_date">Expiry Date:</label>
+                <input class="form-control" type="date" id="expiry_date" name="expiry_date">
+            </div>
+            <button type="submit" class="btn btn-primary">Add</button>
+        </form>
+        <br>
+        <a href="{{ url_for('search_by_ingredients') }}" class="btn btn-primary">Search</a>
+    </section>
+    <!-- View ingredients section -->
+    <section>
+        {% if ingredients %}
+        <h2>Your Ingredients</h2>
+        <table class="table">
+            <thead class="thead-dark">
+                <tr>
+                    <th>Ingredient</th>
+                    <th>Expiry Date</th>
+                    <th>Remove</th>
+                </tr>
+            </thead>
+            {% for item in ingredients %}
+            <tr>
+                <td>{{ item['ingredient'] }}</td>
+                <td>{{ item['expiry_date'] }}</td>
+                <td><a href="{{ url_for('remove_ingredient', ingredient=item['ingredient']) }}">Remove</a></td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% endif %}
+    </section>
+</div> <!-- End of main div -->
 
 {% endblock %}

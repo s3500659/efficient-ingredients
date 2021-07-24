@@ -1,0 +1,40 @@
+{% extends 'base.html'%}
+
+{% block head %}
+<title>Recipe Details</title>
+{% endblock %}
+
+{% block body %}
+<div class="container">
+    <div class="card mb-3">
+        <img class="card-img-top" src="{{recipe['image']}}" alt="Card image cap">
+        <div class="card-body">
+            <h5 class="card-title">{{recipe['title']}}</h5>
+            <p class="card-text">{{recipe['summary']|safe}}</p>
+
+            <h5 class="card-title">Source</h5>
+            <p class="card-text"><a href="{{recipe['sourceUrl']}}">{{recipe['sourceUrl']}}</a></p>
+
+
+            <h5 class="card-title">Servings</h5>
+            <p class="card-text">{{recipe['servings']}}</p>
+
+            <h5 class="card-title">Ready in</h5>
+            <p class="card-text">{{recipe['readyInMinutes']}} minutes</p>
+
+            <h5 class="card-title">Instructions</h5>
+            <p class="card-text">{{recipe['instructions']|safe}}</p>
+
+            <!-- cards for ingredients -->
+            <h5 class="card-title">Ingredients</h5>
+            {% for item in recipe['extendedIngredients'] %}
+            <img src="https://spoonacular.com/cdn/ingredients_100x100/{{item['image']}}" alt="...">
+            <figcaption>{{item['original']}}</figcaption><br>
+            {% endfor %}
+        </div>
+    </div>
+    <p class="card-text"><small class="text-muted">Last updated 3 mins ago</small></p>
+</div>
+
+
+{% endblock %}

@@ -1,0 +1,13 @@
+.flashes {
+  color: red;
+}
+
+.table,
+th,
+td {
+  border: 1px solid;
+  padding: 10px;
+  border-collapse: collapse;
+}
+
+

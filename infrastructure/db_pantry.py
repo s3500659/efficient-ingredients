@@ -9,6 +9,7 @@ class DbPantry:
         self.client = boto3.client('dynamodb', region_name='us-east-1')
         self.table = self.resource.Table(self.table_name)
 
+
     def get_items(self, user):
         table = self.resource.Table(self.table_name)
         response = table.query(
@@ -38,13 +39,14 @@ class DbPantry:
         item = response['Item']
         return item
 
-    def add_item(self, user, name):
+    def add_item(self, user, name, expiry):
         table = self.table
 
         table.put_item(
             Item={
                 'user': user,
-                'ingredient': name
+                'ingredient': name,
+                'expiry_date': expiry
             }
         )
 

@@ -1,0 +1,29 @@
+{% extends 'base.html'%}
+
+{% block head %}
+<title>Recipes</title>
+{% endblock %}
+
+{% block body %}
+<div class="container">
+    <!-- show recipes -->
+    <div class="container">
+        <div class="row">
+            {% for item in recipes %}
+            <div class="col-sm">
+                <div class="card" style="width: 18rem;">
+                    <img src="{{ item['image'] }}" class="card-img-top" alt="...">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ item['title'] }}</h5>
+                        <h6 class="card-subtitle mb-2 text-muted">Missing Ingredients: {{ item['missedIngredientCount'] }}
+                        </h6>
+                        <a href="{{ url_for('get_recipe_details', id=item['id']) }}" class="btn btn-primary">Details</a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}
