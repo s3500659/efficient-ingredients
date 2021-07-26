@@ -3,6 +3,16 @@ import requests
 api_key = "0c6d5f1efcdd4e9f969f719272f2161d"
 
 
+def get_recipes(recipe_name):
+    number = 20 # The number of expected results (between 1 and 100).
+
+    url = f'https://api.spoonacular.com/recipes/complexSearch?apiKey={api_key}&query={recipe_name}&number={number}'
+    response = requests.get(url)
+    data = response.json()
+
+    return data
+
+
 def get_recipe_information(id):
     """
     Use a recipe id to get full information about a recipe, 

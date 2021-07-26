@@ -49,13 +49,16 @@ def get_recipe_details(id):
     return render_template('recipe_details.html', recipe=recipe, exist=recipe_exist)
 
 
-@application.route("/search_by_recipe_name")
+@application.route("/search_by_recipe_name", methods=["POST"])
 def search_by_recipe_name():
     """
     Search the Spoonacular api for a recipe by name.
     """
+    recipe_name = request.form['recipe_name']
+    recipes = spoonacular.get_recipes(recipe_name)
+    recipes = recipes['results']
 
-    return "Under construction"
+    return render_template('recipes.html', recipes=recipes)
 
 
 @application.route("/search_by_ingredients")
@@ -98,10 +101,12 @@ def pantry():
     ingredients = pantry_db.get_items(session['email'])
     return render_template('pantry.html', ingredients=ingredients)
 
+
 @application.route("/logout")
 def logout():
     session.pop('email', None)
     return redirect(url_for('login'))
+
 
 @application.route("/register", methods=['GET', 'POST'])
 def register():
@@ -119,6 +124,7 @@ def register():
             flash('email already registered')
 
     return render_template('register.html')
+
 
 @application.route("/login", methods=['GET', 'POST'])
 def login():
