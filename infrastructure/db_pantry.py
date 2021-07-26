@@ -10,28 +10,28 @@ class DbPantry:
         self.table = self.resource.Table(self.table_name)
 
 
-    def get_items(self, user):
+    def get_items(self, email):
         table = self.resource.Table(self.table_name)
         response = table.query(
-            KeyConditionExpression=Key('user').eq(user)
+            KeyConditionExpression=Key('email').eq(email)
         )
         items = response['Items']
         return items
 
-    def delete_item(self, user, ingredient):
+    def delete_item(self, email, ingredient):
         self.table.delete_item(
             Key={
-                'user': user,
+                'email': email,
                 'ingredient': ingredient
             }
         )
 
-    def get_item(self, user, ingredient):
+    def get_item(self, email, ingredient):
         table = self.table
         
         response = table.get_item(
             Key={
-                'user': user,
+                'email': email,
                 'ingredient': ingredient
             }
         )
@@ -39,12 +39,12 @@ class DbPantry:
         item = response['Item']
         return item
 
-    def add_item(self, user, name, expiry):
+    def add_item(self, email, name, expiry):
         table = self.table
 
         table.put_item(
             Item={
-                'user': user,
+                'email': email,
                 'ingredient': name,
                 'expiry_date': expiry
             }
@@ -60,7 +60,7 @@ class DbPantry:
     def create_pantry(self):
         # Get the service resource.
         dynamodb = boto3.resource('dynamodb')
-        pkey = 'user'
+        pkey = 'email'
         skey = 'ingredient'
 
         if self.table_exist(self.table_name) == True:
