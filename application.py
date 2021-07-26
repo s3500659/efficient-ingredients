@@ -5,16 +5,30 @@ from infrastructure import s3_manager
 import spoonacular
 
 
-
 application = Flask(__name__)
 application.secret_key = 'my secret key'
 
 pantry_tableName = "pantry"
+s3_recipe_bucket = 's3500659-recipes'
+
 pantry_db = DbPantry(pantry_tableName)
 
 user = 'vinh'
 
+@application.route("/<id>/unsave_recipe")
+def unsave_recipe(id):
+    # remove recipe from saved
+    s3_manager.delete_recipe(s3_recipe_bucket,id)
 
+    return redirect(url_for("get_recipe_details", id=id))
+
+@application.route("/<id>/save_recipe")
+def save_recipe(id):
+    # save recipe to s3 for analytics purposes
+    recipe = spoonacular.get_recipe_information(id)
+    s3_manager.upload_recipe(recipe, s3_recipe_bucket, str(id))
+
+    return redirect(url_for("get_recipe_details", id=id))
 
 
 @application.route("/<id>/get_recipe_details")
@@ -22,28 +36,22 @@ def get_recipe_details(id):
     """
     Get the selected recipe details
     """
-    # save recipe to s3 for analytics purposes
-    bucket_name = 's3500659-recipes'
-    s3_manager.create_bucket(bucket_name)
     # get the recipe
-    recipe = spoonacular.get_recipe_information(id)
-    # get recipe instructions
-    instructions = spoonacular.get_recipe_instructions(id)
-    print(instructions)
+    recipe_exist = bool(s3_manager.check_recipe_exist(s3_recipe_bucket, id))
+    recipe = None
+    if recipe_exist == False:
+        recipe = spoonacular.get_recipe_information(id)
+    else:
+        recipe = s3_manager.download_recipe(s3_recipe_bucket, id)
 
-    # for r in recipes:
-    #     s3_manager.upload_recipe(r, bucket_name, str(r['id']))
+    return render_template('recipe_details.html', recipe=recipe, exist=recipe_exist)
 
-
-
-    return render_template('recipe_details.html', recipe=recipe, instructions=instructions)
 
 @application.route("/search_by_recipe_name")
 def search_by_recipe_name():
     """
     Search the Spoonacular api for a recipe by name.
     """
-    
 
     return "Under construction"
 
@@ -60,16 +68,10 @@ def search_by_ingredients():
     for item in ingredients:
         ingredients_list.append(item['ingredient'])
     query_string = ",".join(ingredients_list)
-    recipes = spoonacular.find_recipes_by_ingredients(query_string)
-    
-    
+    response = spoonacular.find_recipes_by_ingredients(query_string)
+    recipes = response['recipes']
 
     return render_template('recipes.html', recipes=recipes)
-
-        
-
-
-    
 
 
 @application.route("/<ingredient>/remove_ingredient")
@@ -109,5 +111,7 @@ def main():
 if __name__ == "__main__":
     # create pantry table in DynamoDb
     pantry_db.create_pantry()
+    # create recipe s3 bucket
+    s3_manager.create_bucket(s3_recipe_bucket)
 
     application.run(host="0.0.0.0", port=8080, debug=True)

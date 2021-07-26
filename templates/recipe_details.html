@@ -9,6 +9,13 @@
     <div class="card mb-3">
         <img class="card-img-top" src="{{recipe['image']}}" alt="Card image cap">
         <div class="card-body">
+            {% if exist == False %}
+            <h5><a href="{{ url_for('save_recipe', id=recipe['id'])}}" class="badge badge-danger">Save</a></h5>
+            {% else %}
+            <h5><a href="{{ url_for('unsave_recipe', id=recipe['id'])}}" class="badge badge-success">Saved</a></h5>
+            {% endif %}
+            
+
             <h5 class="card-title">{{recipe['title']}}</h5>
             <p class="card-text">{{recipe['summary']|safe}}</p>
 

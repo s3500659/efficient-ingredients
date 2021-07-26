@@ -4,6 +4,26 @@ from botocore.exceptions import ClientError
 import json
 
 
+def delete_recipe(bucket, key):
+    s3 = boto3.resource('s3')
+    s3.Object(bucket, key).delete()
+
+def download_recipe(bucket, key):
+    s3 = boto3.resource('s3')
+    content_object = s3.Object(bucket, key)
+    file_content = content_object.get()['Body'].read().decode('utf-8')
+    json_content = json.loads(file_content)
+
+    return json_content
+
+
+def check_recipe_exist(bucket, key):
+    client = boto3.client('s3')
+    results = client.list_objects(Bucket=bucket, Prefix=key)
+    return 'Contents' in results
+    
+
+
 def upload_recipe(object, bucket, key):
     s3 = boto3.client('s3')
     json_object = object

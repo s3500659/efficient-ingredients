@@ -26,6 +26,7 @@ def get_recipe_information(id):
 
     return data
 
+
 def get_recipe_instructions(id):
     url = f'https://api.spoonacular.com/recipes/analyzeInstructions?apiKey={api_key}'
 
@@ -53,12 +54,7 @@ def find_recipes_by_ingredients(ingredients):
     -- returns: the recipes in json format.
     """
 
-    limit = 3
-    ranking = 2
-    ignore_pantry = True
-
-    url = f"{base_url}findByIngredients?apiKey={api_key}&ingredients={ingredients}&number={limit}&limitLicense=true&ranking={ranking}&ignorePantry={ignore_pantry}"
-
+    url = f'https://p9wdrzcnii.execute-api.us-east-1.amazonaws.com/prod/getRecipeByIngredients?ingredients={ingredients}'
     response = requests.get(url)
     recipes = response.json()
     return recipes
