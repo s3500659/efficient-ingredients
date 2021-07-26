@@ -58,7 +58,7 @@ def search_by_recipe_name():
     recipes = spoonacular.get_recipes(recipe_name)
     recipes = recipes['results']
 
-    return render_template('recipes.html', recipes=recipes)
+    return render_template('recipes.html', recipes=recipes, by_name=True)
 
 
 @application.route("/search_by_ingredients")
@@ -76,13 +76,13 @@ def search_by_ingredients():
     response = spoonacular.find_recipes_by_ingredients(query_string)
     recipes = response['recipes']
 
-    return render_template('recipes.html', recipes=recipes)
+    return render_template('recipes.html', recipes=recipes, by_name=False)
 
 
 @application.route("/<ingredient>/remove_ingredient")
 def remove_ingredient(ingredient):
-
-    return "todo add ingredients"
+    pantry_db.delete_item(session['email'], ingredient)
+    return redirect(url_for('pantry'))
 
 
 @application.route("/add_ingredient", methods=['POST'])

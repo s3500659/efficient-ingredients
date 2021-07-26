@@ -1,18 +1,19 @@
 import boto3
 from botocore.exceptions import ClientError
 
-dynamodb = boto3.resource('dynamodb')
-client = boto3.client('dynamodb')
+dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+client = boto3.client('dynamodb', region_name='us-east-1')
 table_name = 'efficient_ingredients_user'
 p_key = 'email'
 
 
 def table_exist(table_name=table_name):
-        tables = client.list_tables()['TableNames']
-        if table_name not in tables:
-            return False
+    tables = client.list_tables()['TableNames']
+    if table_name not in tables:
+        return False
 
-        return True
+    return True
+
 
 def get_user(email):
     table = dynamodb.Table(table_name)

@@ -15,7 +15,9 @@
                     <img src="{{ item['image'] }}" class="card-img-top" alt="...">
                     <div class="card-body">
                         <h5 class="card-title">{{ item['title'] }}</h5>
+                        {% if by_name == False %}
                         <h6 class="card-subtitle mb-2 text-muted">Missing Ingredients: {{ item['missedIngredientCount'] }}
+                        {% endif %}
                         </h6>
                         <a href="{{ url_for('get_recipe_details', id=item['id']) }}" class="btn btn-primary">Details</a>
                     </div>
