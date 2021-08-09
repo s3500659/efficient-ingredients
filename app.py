@@ -1,20 +1,42 @@
 import json
 from flask import Flask, render_template, request, redirect, session, flash, url_for
 from infrastructure.db_pantry import *
-from infrastructure import s3_manager, db_user
+from infrastructure import s3_manager, db_user, db_manager
+from boto3.dynamodb.conditions import Key, Attr
 import spoonacular
+import pprint
 
 
-application = Flask(__name__)
-application.secret_key = 'my secret key'
+app = Flask(__name__)
+app.secret_key = 'my secret key'
 
-pantry_tableName = "pantry"
+table_pantry = "pantry"
+table_saved_recipe = "saved_recipe"
 s3_recipe_bucket = 's3500659-recipes'
 
-pantry_db = DbPantry(pantry_tableName)
+pantry_db = DbPantry(table_pantry)
 
 
-@application.route("/<id>/unsave_recipe")
+@app.route('/saved_recipes')
+def saved_recipes():
+    """ Get the user saved recipes from database then present them to the user """
+    # get user saved recipes from database
+    table = db_manager.get_table(table_saved_recipe)
+    response = table.query(
+        KeyConditionExpression=Key('user').eq(session['email'])
+    )
+    items = response['Items']
+    # get all recipes from s3
+    recipes = []
+    for item in items:
+        recipe = s3_manager.download_recipe(s3_recipe_bucket, item['recipe_id'])
+        recipes.append(recipe) 
+    
+    
+    return render_template('saved_recipes.html', recipes=recipes)
+
+
+@app.route("/<id>/unsave_recipe")
 def unsave_recipe(id):
     # remove recipe from saved
     s3_manager.delete_recipe(s3_recipe_bucket, id)
@@ -22,16 +44,24 @@ def unsave_recipe(id):
     return redirect(url_for("get_recipe_details", id=id))
 
 
-@application.route("/<id>/save_recipe")
+@app.route("/<id>/save_recipe")
 def save_recipe(id):
     # save recipe to s3 for analytics purposes
     recipe = spoonacular.get_recipe_information(id)
     s3_manager.upload_recipe(recipe, s3_recipe_bucket, str(id))
+    # save user - recipe id to database
+    table = db_manager.get_table(table_saved_recipe)
+    table.put_item(
+        Item={
+            'user': session['email'],
+            'recipe_id': str(id),
+        }
+    )
 
     return redirect(url_for("get_recipe_details", id=id))
 
 
-@application.route("/<id>/get_recipe_details")
+@app.route("/<id>/get_recipe_details")
 def get_recipe_details(id):
     """
     Get the selected recipe details
@@ -49,7 +79,7 @@ def get_recipe_details(id):
     return render_template('recipe_details.html', recipe=recipe, exist=recipe_exist)
 
 
-@application.route("/search_by_recipe_name", methods=["POST"])
+@app.route("/search_by_recipe_name", methods=["POST"])
 def search_by_recipe_name():
     """
     Search the Spoonacular api for a recipe by name.
@@ -61,7 +91,7 @@ def search_by_recipe_name():
     return render_template('recipes.html', recipes=recipes, by_name=True)
 
 
-@application.route("/search_by_ingredients")
+@app.route("/search_by_ingredients")
 def search_by_ingredients():
     """
     Search the Spoonacular api for recipes that includes the ingredients from the user's pantry.
@@ -79,13 +109,13 @@ def search_by_ingredients():
     return render_template('recipes.html', recipes=recipes, by_name=False)
 
 
-@application.route("/<ingredient>/remove_ingredient")
+@app.route("/<ingredient>/remove_ingredient")
 def remove_ingredient(ingredient):
     pantry_db.delete_item(session['email'], ingredient)
     return redirect(url_for('pantry'))
 
 
-@application.route("/add_ingredient", methods=['POST'])
+@app.route("/add_ingredient", methods=['POST'])
 def add_ingredient():
     ingredient = request.form['ingredient']
     expiry = request.form['expiry_date']
@@ -94,7 +124,7 @@ def add_ingredient():
     return redirect(url_for("pantry"))
 
 
-@application.route("/pantry")
+@app.route("/pantry")
 def pantry():
 
     # get all ingredients for current user
@@ -102,13 +132,13 @@ def pantry():
     return render_template('pantry.html', ingredients=ingredients)
 
 
-@application.route("/logout")
+@app.route("/logout")
 def logout():
     session.pop('email', None)
     return redirect(url_for('login'))
 
 
-@application.route("/register", methods=['GET', 'POST'])
+@app.route("/register", methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
         email = request.form['email']
@@ -126,7 +156,7 @@ def register():
     return render_template('register.html')
 
 
-@application.route("/login", methods=['GET', 'POST'])
+@app.route("/login", methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         email = request.form['email']
@@ -146,7 +176,7 @@ def login():
     return render_template('login.html')
 
 
-@application.route("/")
+@app.route("/")
 def main():
     return redirect(url_for("login"))
 
@@ -158,7 +188,9 @@ if __name__ == "__main__":
     db_user.create_user('vinh@gmail.com', '123', 'Vinh Tran')
     # create pantry table in DynamoDb
     pantry_db.create_pantry()
+    # create user saved recipe table
+    db_manager.create_table('saved_recipe', 'user', 'recipe_id')
     # create recipe s3 bucket
     s3_manager.create_bucket(s3_recipe_bucket)
 
-    application.run(host="0.0.0.0", port=8080, debug=True)
+    app.run(host="0.0.0.0")

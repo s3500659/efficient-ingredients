@@ -57,6 +57,7 @@ class DbPantry:
 
         return True
 
+
     def create_pantry(self):
         # Get the service resource.
         dynamodb = boto3.resource('dynamodb')

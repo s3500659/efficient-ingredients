@@ -1,0 +1,31 @@
+{% extends 'base.html'%}
+
+{% block head %}
+<title>Saved Recipes</title>
+{% endblock %}
+
+{% block body %}
+<div class="container">
+    <!-- show recipes -->
+    <div class="container">
+        <div class="row">
+            {% for item in recipes %}
+            <div class="col-sm">
+                <div class="card" style="width: 18rem;">
+                    <img src="{{ item['recipe']['image'] }}" class="card-img-top" alt="...">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ item['recipe']['title'] }}</h5>
+                        {% if by_name == False %}
+                        <h6 class="card-subtitle mb-2 text-muted">Missing Ingredients: {{ item['recipe']['missedIngredientCount'] }}
+                        {% endif %}
+                        </h6>
+                        <a href="{{ url_for('get_recipe_details', id=item['recipe']['id']) }}" class="btn btn-primary">Details</a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}
