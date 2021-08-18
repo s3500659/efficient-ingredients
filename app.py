@@ -1,7 +1,7 @@
 import json
 from flask import Flask, render_template, request, redirect, session, flash, url_for
 from infrastructure.db_pantry import *
-from infrastructure import s3_manager, db_user, db_manager
+from infrastructure import s3_manager, db_user, db_manager, kinesis_ds
 from boto3.dynamodb.conditions import Key, Attr
 import spoonacular
 import pprint
@@ -13,6 +13,7 @@ app.secret_key = 'my secret key'
 table_pantry = "pantry"
 table_saved_recipe = "saved_recipe"
 s3_recipe_bucket = 's3500659-recipes'
+ds_trending_recipes = 'ef-trending-recipes'
 
 pantry_db = DbPantry(table_pantry)
 
@@ -29,10 +30,10 @@ def saved_recipes():
     # get all recipes from s3
     recipes = []
     for item in items:
-        recipe = s3_manager.download_recipe(s3_recipe_bucket, item['recipe_id'])
-        recipes.append(recipe) 
-    
-    
+        recipe = s3_manager.download_recipe(
+            s3_recipe_bucket, item['recipe_id'])
+        recipes.append(recipe)
+
     return render_template('saved_recipes.html', recipes=recipes)
 
 
@@ -66,15 +67,21 @@ def get_recipe_details(id):
     """
     Get the selected recipe details
     """
-    # get the recipe
+    # get the recipe from api
     recipe_exist = bool(s3_manager.check_recipe_exist(s3_recipe_bucket, id))
     recipe = None
     if recipe_exist == False:
         response = spoonacular.get_recipe_information(id)
         recipe = response['recipe']
     else:
+        # download saved recipe from s3
+        # (this recipe was saved by the user and so we uploaded the recipe to s3 to save on api call)
         response = s3_manager.download_recipe(s3_recipe_bucket, id)
         recipe = response['recipe']
+
+    # put recipe details to kinesis datastream
+    ds = {'id': id}
+    kinesis_ds.put_record(ds_trending_recipes, ds, 'recipe')
 
     return render_template('recipe_details.html', recipe=recipe, exist=recipe_exist)
 
@@ -126,10 +133,15 @@ def add_ingredient():
 
 @app.route("/pantry")
 def pantry():
+    # get trending recipes from s3
+    trending_recipes_id = s3_manager.get_trending_recipe_id()
+    trending_recipes = []
+    for id in trending_recipes_id:
+        trending_recipes.append(spoonacular.get_recipe_information(id))
 
     # get all ingredients for current user
     ingredients = pantry_db.get_items(session['email'])
-    return render_template('pantry.html', ingredients=ingredients)
+    return render_template('pantry.html', ingredients=ingredients, trending_recipes=trending_recipes)
 
 
 @app.route("/logout")
@@ -192,5 +204,7 @@ if __name__ == "__main__":
     db_manager.create_table('saved_recipe', 'user', 'recipe_id')
     # create recipe s3 bucket
     s3_manager.create_bucket(s3_recipe_bucket)
+    # create new kinesis data stream
+    kinesis_ds.create_stream(ds_trending_recipes, 1)
 
     app.run(host="0.0.0.0")

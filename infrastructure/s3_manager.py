@@ -1,12 +1,55 @@
+from json.decoder import JSONDecodeError
 import logging
 import boto3
 from botocore.exceptions import ClientError
 import json
 
+s3_ef_ds_bucket = 's3500659-ef-deliverystream'
+
+
+def get_trending_recipe_keys():
+    bucket = s3_ef_ds_bucket
+    client = boto3.client('s3')
+    keys = []
+
+    response = client.list_objects_v2(
+        Bucket=bucket
+    )
+    for item in response['Contents']:
+        keys.append(item['Key'])
+
+    return keys
+
+
+def get_trending_recipe_id():
+    s3 = boto3.resource('s3')
+    decoder = json.JSONDecoder()
+    id_set = set()
+
+    keys = get_trending_recipe_keys()
+    for key in keys:
+        obj = s3.Object(s3_ef_ds_bucket, key)
+
+        content = obj.get()['Body'].read().decode('utf-8')
+
+        content_length = len(content)
+        decode_index = 0
+
+        while decode_index < content_length:
+            try:
+                obj, decode_index = decoder.raw_decode(content, decode_index)
+                id_set.add(obj['id'])
+            except JSONDecodeError as e:
+                # Scan forward and keep trying to decode
+                decode_index += 1
+
+    return id_set
+
 
 def delete_recipe(bucket, key):
     s3 = boto3.resource('s3')
     s3.Object(bucket, key).delete()
+
 
 def download_recipe(bucket, key):
     s3 = boto3.resource('s3')
@@ -21,7 +64,6 @@ def check_recipe_exist(bucket, key):
     client = boto3.client('s3')
     results = client.list_objects(Bucket=bucket, Prefix=key)
     return 'Contents' in results
-    
 
 
 def upload_recipe(object, bucket, key):
@@ -31,7 +73,8 @@ def upload_recipe(object, bucket, key):
         Body=json.dumps(json_object),
         Bucket=bucket,
         Key=key
-)
+    )
+
 
 def upload_file(file_name, bucket, object_name=None):
     """Upload a file to an S3 bucket
@@ -55,6 +98,7 @@ def upload_file(file_name, bucket, object_name=None):
         return False
     return True
 
+
 def create_bucket(bucket_name, region=None):
     """Create an S3 bucket in a specified region
 
@@ -65,7 +109,7 @@ def create_bucket(bucket_name, region=None):
     :param region: String region to create bucket in, e.g., 'us-west-2'
     :return: True if bucket created, else False
     """
-    
+
     # Create bucket
     try:
         if region is None:
