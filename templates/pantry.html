@@ -7,18 +7,25 @@
 {% block body %}
 
 <div class="container">
-
     <!-- Carousel -->
     <div id="carouselExampleControls" class="carousel slide" data-ride="carousel">
         <div class="carousel-inner">
             <div class="carousel-item active">
-                <img src="https://static01.nyt.com/images/2021/01/26/well/well-foods-microbiome/well-foods-microbiome-jumbo.jpg?quality=90&auto=webp" alt="First slide">
+                <img src="https://static01.nyt.com/images/2021/01/26/well/well-foods-microbiome/well-foods-microbiome-jumbo.jpg?quality=90&auto=webp"
+                    alt="First slide">
             </div>
+            {% if trending_recipes is not none%}
             {% for item in trending_recipes %}
             <div class="carousel-item ">
-                <img src="{{ item['recipe']['image'] }}" alt="Second slide">
+                <a href="{{ url_for('get_recipe_details', id=item['id']) }}">
+                    <img src="{{ item['image'] }}" alt="Second slide"></a>
+                <div class="carousel-caption d-none d-md-block">
+                    <h5>{{ item['title'] }}</h5>
+                    <p>{{ item['summary']|safe }}</p>
+                </div>
             </div>
             {% endfor %}
+            {% endif %}
         </div>
         <a class="carousel-control-prev" href="#carouselExampleControls" role="button" data-slide="prev">
             <span class="carousel-control-prev-icon" aria-hidden="true"></span>
@@ -28,10 +35,7 @@
             <span class="carousel-control-next-icon" aria-hidden="true"></span>
             <span class="sr-only">Next</span>
         </a>
-
     </div>
-
-
     <!-- Find recipe section -->
     <section>
         <h2>Search for a recipe</h2>

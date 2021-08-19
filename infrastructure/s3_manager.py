@@ -4,31 +4,49 @@ import boto3
 from botocore.exceptions import ClientError
 import json
 
+client = boto3.client('s3', region_name='us-east-1')
+resource = boto3.resource('s3', region_name='us-east-1')
+
 s3_ef_ds_bucket = 's3500659-ef-deliverystream'
 
 
 def get_trending_recipe_keys():
+    """ get all keys from s3 trending recipes bucket """
     bucket = s3_ef_ds_bucket
-    client = boto3.client('s3')
     keys = []
 
-    response = client.list_objects_v2(
-        Bucket=bucket
-    )
-    for item in response['Contents']:
-        keys.append(item['Key'])
+    try:
+        response = client.list_objects_v2(
+            Bucket=bucket
+        )
+
+        if response['KeyCount'] == 0:
+            return
+
+        for item in response['Contents']:
+            keys.append(item['Key'])
+    except ClientError as e:
+        return
 
     return keys
 
 
-def get_trending_recipe_id():
-    s3 = boto3.resource('s3')
+def get_trending_recipes():
+    """ 
+    extract trending recipe information from the S3 trending recipe bucket.
+
+    returns: a list of trending recipes which may include duplicates.
+    """
     decoder = json.JSONDecoder()
-    id_set = set()
+    recipes = []
 
     keys = get_trending_recipe_keys()
+
+    if keys is None:
+        return
+
     for key in keys:
-        obj = s3.Object(s3_ef_ds_bucket, key)
+        obj = resource.Object(s3_ef_ds_bucket, key)
 
         content = obj.get()['Body'].read().decode('utf-8')
 
@@ -38,22 +56,26 @@ def get_trending_recipe_id():
         while decode_index < content_length:
             try:
                 obj, decode_index = decoder.raw_decode(content, decode_index)
-                id_set.add(obj['id'])
+                recipes.append(obj)
             except JSONDecodeError as e:
                 # Scan forward and keep trying to decode
                 decode_index += 1
 
-    return id_set
+    return recipes
 
 
 def delete_recipe(bucket, key):
-    s3 = boto3.resource('s3')
-    s3.Object(bucket, key).delete()
+    """ delete a specified recipe from S3 bucket """
+    resource.Object(bucket, key).delete()
 
 
 def download_recipe(bucket, key):
-    s3 = boto3.resource('s3')
-    content_object = s3.Object(bucket, key)
+    """ 
+    downloads recipe from S3 bucket.
+
+    returns: a json format version of the recipe.
+    """
+    content_object = resource.Object(bucket, key)
     file_content = content_object.get()['Body'].read().decode('utf-8')
     json_content = json.loads(file_content)
 
@@ -61,15 +83,14 @@ def download_recipe(bucket, key):
 
 
 def check_recipe_exist(bucket, key):
-    client = boto3.client('s3')
     results = client.list_objects(Bucket=bucket, Prefix=key)
     return 'Contents' in results
 
 
 def upload_recipe(object, bucket, key):
-    s3 = boto3.client('s3')
+    """ upload the specified recipe to an S3 bucket """
     json_object = object
-    s3.put_object(
+    client.put_object(
         Body=json.dumps(json_object),
         Bucket=bucket,
         Key=key
@@ -90,9 +111,8 @@ def upload_file(file_name, bucket, object_name=None):
         object_name = file_name
 
     # Upload the file
-    s3_client = boto3.client('s3')
     try:
-        response = s3_client.upload_file(file_name, bucket, object_name)
+        response = client.upload_file(file_name, bucket, object_name)
     except ClientError as e:
         logging.error(e)
         return False
@@ -113,13 +133,13 @@ def create_bucket(bucket_name, region=None):
     # Create bucket
     try:
         if region is None:
-            s3_client = boto3.client('s3')
-            s3_client.create_bucket(Bucket=bucket_name)
+            client = boto3.client('s3')
+            client.create_bucket(Bucket=bucket_name)
         else:
-            s3_client = boto3.client('s3', region_name=region)
+            client = boto3.client('s3', region_name=region)
             location = {'LocationConstraint': region}
-            s3_client.create_bucket(Bucket=bucket_name,
-                                    CreateBucketConfiguration=location)
+            client.create_bucket(Bucket=bucket_name,
+                                 CreateBucketConfiguration=location)
     except ClientError as e:
         logging.error(e)
         return False

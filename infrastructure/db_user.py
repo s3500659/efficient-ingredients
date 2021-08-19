@@ -8,6 +8,7 @@ p_key = 'email'
 
 
 def table_exist(table_name=table_name):
+    """ check if a table already exist """
     tables = client.list_tables()['TableNames']
     if table_name not in tables:
         return False
@@ -16,6 +17,7 @@ def table_exist(table_name=table_name):
 
 
 def get_user(email):
+    """ get the user with the specified email """
     table = dynamodb.Table(table_name)
 
     try:
@@ -34,6 +36,7 @@ def get_user(email):
 
 
 def create_user(email, password, username):
+    """ create a new user with the specified details """
     table = dynamodb.Table(table_name)
 
     table.put_item(
@@ -46,7 +49,7 @@ def create_user(email, password, username):
 
 
 def create_user_table():
-
+    """ create the user details table in DynamoDB """
     # Create the DynamoDB table.
     table = dynamodb.create_table(
         TableName=table_name,

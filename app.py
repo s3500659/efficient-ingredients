@@ -4,8 +4,6 @@ from infrastructure.db_pantry import *
 from infrastructure import s3_manager, db_user, db_manager, kinesis_ds
 from boto3.dynamodb.conditions import Key, Attr
 import spoonacular
-import pprint
-
 
 app = Flask(__name__)
 app.secret_key = 'my secret key'
@@ -39,6 +37,7 @@ def saved_recipes():
 
 @app.route("/<id>/unsave_recipe")
 def unsave_recipe(id):
+    """ remove the user saved recipe """
     # remove recipe from saved
     s3_manager.delete_recipe(s3_recipe_bucket, id)
 
@@ -47,6 +46,7 @@ def unsave_recipe(id):
 
 @app.route("/<id>/save_recipe")
 def save_recipe(id):
+    """ save the selected recipe """
     # save recipe to s3 for analytics purposes
     recipe = spoonacular.get_recipe_information(id)
     s3_manager.upload_recipe(recipe, s3_recipe_bucket, str(id))
@@ -80,7 +80,12 @@ def get_recipe_details(id):
         recipe = response['recipe']
 
     # put recipe details to kinesis datastream
-    ds = {'id': id}
+    ds = {
+        'id': id,
+        'title': recipe['title'],
+        'image': recipe['image'],
+        'summary': recipe['summary']
+    }
     kinesis_ds.put_record(ds_trending_recipes, ds, 'recipe')
 
     return render_template('recipe_details.html', recipe=recipe, exist=recipe_exist)
@@ -118,12 +123,14 @@ def search_by_ingredients():
 
 @app.route("/<ingredient>/remove_ingredient")
 def remove_ingredient(ingredient):
+    """ remove the ingredient from the pantry """
     pantry_db.delete_item(session['email'], ingredient)
     return redirect(url_for('pantry'))
 
 
 @app.route("/add_ingredient", methods=['POST'])
 def add_ingredient():
+    """ add an ingredient to the pantry """
     ingredient = request.form['ingredient']
     expiry = request.form['expiry_date']
 
@@ -133,25 +140,32 @@ def add_ingredient():
 
 @app.route("/pantry")
 def pantry():
+    """ view of the pantry page """
     # get trending recipes from s3
-    trending_recipes_id = s3_manager.get_trending_recipe_id()
-    trending_recipes = []
-    for id in trending_recipes_id:
-        trending_recipes.append(spoonacular.get_recipe_information(id))
+    trending_recipes = s3_manager.get_trending_recipes()
+    # remove duplicate recipes from trending_recipes
+    if trending_recipes is not None:
+        ids = []
+        for item in trending_recipes:
+            if item['id'] in ids:
+                trending_recipes.remove(item)
+            else:
+                ids.append(item['id'])
 
-    # get all ingredients for current user
     ingredients = pantry_db.get_items(session['email'])
     return render_template('pantry.html', ingredients=ingredients, trending_recipes=trending_recipes)
 
 
 @app.route("/logout")
 def logout():
+    """ log out the current user """
     session.pop('email', None)
     return redirect(url_for('login'))
 
 
 @app.route("/register", methods=['GET', 'POST'])
 def register():
+    """ register a new user """
     if request.method == 'POST':
         email = request.form['email']
         pw = request.form['password']
@@ -170,6 +184,7 @@ def register():
 
 @app.route("/login", methods=['GET', 'POST'])
 def login():
+    """ login the user with the specified login details """
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']

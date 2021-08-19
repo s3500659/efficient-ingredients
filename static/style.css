@@ -10,9 +10,13 @@ td {
   border-collapse: collapse;
 }
 
-.carousel-inner > .carousel-item > img {
-  width:100%;
+.carousel-inner > .carousel-item > a > img {
+  width: 100%;
+  height: 50%;
   margin: auto;
 }
 
-
+.carousel-caption > h5,
+p {
+  color: black;
+}
