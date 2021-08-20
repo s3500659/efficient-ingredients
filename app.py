@@ -61,6 +61,16 @@ def save_recipe(id):
 
     return redirect(url_for("get_recipe_details", id=id))
 
+def kinesis_put_record(id, recipe):
+    """ insert recipe information to the Kinesis datastream """
+    ds = {
+        'id': id,
+        'title': recipe['title'],
+        'image': recipe['image'],
+        'summary': recipe['summary']
+    }
+    kinesis_ds.put_record(ds_trending_recipes, ds, 'recipe')
+
 
 @app.route("/<id>/get_recipe_details")
 def get_recipe_details(id):
@@ -80,13 +90,7 @@ def get_recipe_details(id):
         recipe = response['recipe']
 
     # put recipe details to kinesis datastream
-    ds = {
-        'id': id,
-        'title': recipe['title'],
-        'image': recipe['image'],
-        'summary': recipe['summary']
-    }
-    kinesis_ds.put_record(ds_trending_recipes, ds, 'recipe')
+    kinesis_put_record(id, recipe)
 
     return render_template('recipe_details.html', recipe=recipe, exist=recipe_exist)
 
@@ -142,15 +146,18 @@ def add_ingredient():
 def pantry():
     """ view of the pantry page """
     # get trending recipes from s3
-    trending_recipes = s3_manager.get_trending_recipes()
+    trending_recipes_id = s3_manager.get_trending_recipes()
     # remove duplicate recipes from trending_recipes
-    if trending_recipes is not None:
-        ids = []
-        for item in trending_recipes:
-            if item['id'] in ids:
-                trending_recipes.remove(item)
-            else:
-                ids.append(item['id'])
+    trending_recipes = []
+    for item in trending_recipes_id:
+        recipe = spoonacular.get_recipe_information(item)
+        d = {
+            'id': item,
+            'image': recipe['recipe']['image'],
+            'title': recipe['recipe']['title'],
+            'summary': recipe['recipe']['summary']
+        }
+        trending_recipes.append(d)
 
     ingredients = pantry_db.get_items(session['email'])
     return render_template('pantry.html', ingredients=ingredients, trending_recipes=trending_recipes)

@@ -38,7 +38,7 @@ def get_trending_recipes():
     returns: a list of trending recipes which may include duplicates.
     """
     decoder = json.JSONDecoder()
-    recipes = []
+    recipes = set()
 
     keys = get_trending_recipe_keys()
 
@@ -56,7 +56,7 @@ def get_trending_recipes():
         while decode_index < content_length:
             try:
                 obj, decode_index = decoder.raw_decode(content, decode_index)
-                recipes.append(obj)
+                recipes.add(obj['id'])
             except JSONDecodeError as e:
                 # Scan forward and keep trying to decode
                 decode_index += 1
