@@ -4,8 +4,6 @@ client = boto3.client('dynamodb', region_name='us-east-1')
 dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
 
 
-
-
 def get_table(table_name):
     table = dynamodb.Table(table_name)
     return table
